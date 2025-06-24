@@ -1535,6 +1535,7 @@ function stopWarningSound() {
     if (sound) {
         sound.pause();
         sound.currentTime = 0;
+        console.log("Stopping warning sound"); // debug
     }
 }
 
