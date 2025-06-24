@@ -1530,6 +1530,14 @@ function playSound(soundId) {
     }
 }
 
+function stopWarningSound() {
+    const sound = document.getElementById('warningSound');
+    if (sound) {
+        sound.pause();
+        sound.currentTime = 0;
+    }
+}
+
 
 
 // Play warning sound with increasing frequency as timer gets lower
@@ -1561,13 +1569,7 @@ function playTimerWarningSound(secondsRemaining) {
     }
 }
 
-function stopWarningSound() {
-    const sound = document.getElementById('warningSound');
-    if (sound) {
-        sound.pause();
-        sound.currentTime = 0;
-    }
-}
+
 
 // Initialize game when page loads
 document.addEventListener('DOMContentLoaded', function() {
