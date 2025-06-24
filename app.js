@@ -139,11 +139,11 @@ const questionDatabase = {
         },
         {
             "question": "This prestigious golf tournament can be streamed on Paramount+ with the Showtime plan.",
-            "answer": "Who is The Masters?"
+            "answer": "What is The Masters?"
         },
         {
             "question": "Paramount+ has exclusive rights to this U.S. women's professional soccer league through 2027.",
-            "answer": "Who is the NWSL (National Women's Soccer League)?"
+            "answer": "What is the NWSL (National Women's Soccer League)?"
         },
         {
             "question": "This Italian football league's matches are available exclusively on Paramount+ in the United States.",
@@ -163,7 +163,7 @@ const questionDatabase = {
         },
         {
             "question": "This Scottish football league's exclusive US rights are held by Paramount+ through 2024/25.",
-            "answer": "Who is the Scottish Premiership?"
+            "answer": "What is the Scottish Premiership?"
         },
         {
             "question": "These three divisions of English football below the Premier League have matches on Paramount+.",
