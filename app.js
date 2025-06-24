@@ -1103,6 +1103,7 @@ function stopCountdown() {
         gameState.countdownInterval = null;
         gameState.countdownRunning = false;
     }
+    stopWarningSound(); 
 }
 
 // Time's up function
@@ -1529,13 +1530,7 @@ function playSound(soundId) {
     }
 }
 
-function stopWarningSound() {
-    const sound = document.getElementById('warningSound');
-    if (sound) {
-        sound.pause();
-        sound.currentTime = 0;
-    }
-}
+
 
 // Play warning sound with increasing frequency as timer gets lower
 function playTimerWarningSound(secondsRemaining) {
@@ -1563,6 +1558,14 @@ function playTimerWarningSound(secondsRemaining) {
             sound.volume = 1.0; // Set to 100% volume (maximum)
             playSound('warningSound');
         }
+    }
+}
+
+function stopWarningSound() {
+    const sound = document.getElementById('warningSound');
+    if (sound) {
+        sound.pause();
+        sound.currentTime = 0;
     }
 }
 
