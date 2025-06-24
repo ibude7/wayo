@@ -1086,6 +1086,7 @@ function startCountdown() {
             // Time's up!
             if (gameState.countdownTime <= 0) {
                 stopCountdown();
+                stopWarningSound(); 
                 timeUp();
             }
         } catch (error) {
@@ -1528,6 +1529,14 @@ function playSound(soundId) {
     }
 }
 
+function stopWarningSound() {
+    const sound = document.getElementById('warningSound');
+    if (sound) {
+        sound.pause();
+        sound.currentTime = 0;
+    }
+}
+
 // Play warning sound with increasing frequency as timer gets lower
 function playTimerWarningSound(secondsRemaining) {
     // Play warning sound at exactly 10 seconds
@@ -1555,7 +1564,6 @@ function playTimerWarningSound(secondsRemaining) {
             playSound('warningSound');
         }
     }
-    else (sound = false);
 }
 
 // Initialize game when page loads
