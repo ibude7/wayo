@@ -122,6 +122,11 @@
         </div>
 
         <!-- Audio Elements -->
+        <!-- WLTDO Audio - Added to play before introduction -->
+        <audio id="wltdoAudio" preload="auto">
+            <source src="WLTDO-P+-Jeopardy_Audio Denoise.mp3" type="audio/mp3">
+        </audio>
+        
         <audio id="clickSound" preload="auto">
             <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+Dt" type="audio/wav">
         </audio>
@@ -142,5 +147,24 @@
         </div>
 
     <script src="app.js"></script>
+    <script>
+    // Play WLTDO audio before introduction when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const wltdoAudio = document.getElementById('wltdoAudio');
+        
+        if (wltdoAudio) {
+            // Play the WLTDO audio
+            wltdoAudio.play();
+            
+            // Wait for WLTDO audio to finish before proceeding with normal game intro
+            wltdoAudio.addEventListener('ended', function() {
+                // Continue with normal game initialization
+                console.log('WLTDO audio finished, continuing with game intro');
+            });
+        } else {
+            console.error('WLTDO audio element not found');
+        }
+    });
+</script>
 </body>
 </html>
