@@ -392,6 +392,27 @@ function initGame() {
 // Initialize game components 
 function initializeGameComponents() {
     try {
+        // Check if WLTDO audio is playing and wait for it
+        const wltdoAudio = document.getElementById('wltdoAudio');
+        if (wltdoAudio && !wltdoAudio.ended && !wltdoAudio.paused) {
+            console.log("Waiting for WLTDO audio to finish before initializing game components");
+            wltdoAudio.addEventListener('ended', () => {
+                proceedWithGameInit();
+            });
+        } else {
+            proceedWithGameInit();
+        }
+    } catch (error) {
+        console.error("Error during game initialization:", error);
+        alert('There was a problem initializing the game. Please refresh the page.');
+    }
+    
+    function proceedWithGameInit() {
+    
+    }
+
+    
+    try {
         // Re-get DOM elements to ensure they're available
         refreshDOMElements();
         
