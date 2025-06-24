@@ -1529,7 +1529,7 @@ function playSound(soundId) {
 }
 
 // Play warning sound with increasing frequency as timer gets lower
-function playTimerWarningSound(!secondsRemaining < 0) {
+function playTimerWarningSound(secondsRemaining) {
     // Play warning sound at exactly 10 seconds
     if (secondsRemaining === 10) {
         const sound = document.getElementById('warningSound');
@@ -1555,6 +1555,7 @@ function playTimerWarningSound(!secondsRemaining < 0) {
             playSound('warningSound');
         }
     }
+    else (sound = false);
 }
 
 // Initialize game when page loads
