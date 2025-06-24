@@ -42,7 +42,7 @@
                     <span class="current-player-label">Current Player:</span>
                     <span id="currentPlayerName" class="current-player-name"></span>
                     <div class="player-stats">
-                        <span class="stat">Score: <span id="currentScore" class="score-value">0 min</span></span>
+                        <span class="stat">Score: <span id="currentScore" class="score-value">0%</span></span>
                         <span class="stat">Break Time: <span id="currentBreakTime" class="break-value">0 min</span></span>
                     </div>
                 </div>
@@ -149,22 +149,7 @@
     <script src="app.js"></script>
     <script>
     // Play WLTDO audio before introduction when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        const wltdoAudio = document.getElementById('wltdoAudio');
-        
-        if (wltdoAudio) {
-            // Play the WLTDO audio
-            wltdoAudio.play();
-            
-            // Wait for WLTDO audio to finish before proceeding with normal game intro
-            wltdoAudio.addEventListener('ended', function() {
-                // Continue with normal game initialization
-                console.log('WLTDO audio finished, continuing with game intro');
-            });
-        } else {
-            console.error('WLTDO audio element not found');
-        }
-    });
-</script>
+   
+    </script>
 </body>
 </html>

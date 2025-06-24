@@ -649,6 +649,71 @@ function speak(text, options = {}) {
     }
 }
 
+// Enhanced text-to-speech with callback when finished
+function speakWithCallback(text, options = {}, callback = null) {
+    try {
+        // Guard clauses
+        if (!text || typeof text !== 'string') {
+            console.warn('Invalid text passed to speakWithCallback function');
+            if (callback) callback();
+            return null;
+        }
+        
+        if (!gameState || !gameState.audioEnabled) {
+            if (callback) callback();
+            return null;
+        }
+        
+        if (!window.speechSynthesis) {
+            console.warn('Speech synthesis not available');
+            if (callback) callback();
+            return null;
+        }
+    
+        // Cancel any ongoing speech
+        try {
+            speechSynthesis.cancel();
+        } catch (error) {
+            console.warn('Error canceling speech synthesis:', error);
+        }
+    
+        const utterance = new SpeechSynthesisUtterance(text);
+    
+        // Use the best available voice
+        if (gameState.bestVoice) {
+            utterance.voice = gameState.bestVoice;
+        }
+    
+        // Optimal settings for game show atmosphere
+        utterance.rate = options.rate || 0.8;
+        utterance.pitch = options.pitch || 0.9;
+        utterance.volume = options.volume || 0.8;
+        
+        // Add callback when speech ends
+        utterance.onend = function() {
+            if (callback) {
+                callback();
+            }
+        };
+        
+        // Add error handling
+        utterance.onerror = function(event) {
+            console.error('Speech synthesis error:', event);
+            if (callback) {
+                callback();
+            }
+        };
+    
+        speechSynthesis.speak(utterance);
+        
+        return utterance;
+    } catch (error) {
+        console.error('Error in speakWithCallback function:', error);
+        if (callback) callback();
+        return null;
+    }
+}
+
 // Setup event listeners
 function setupEventListeners() {
     elements.startGameBtn.addEventListener('click', validateAndStartGame);
@@ -893,42 +958,63 @@ function startGame() {
     
         // Sound and speech
         playSound('clickSound');
-        
-        // Welcome speech
-        speak("Welcome to Jeopardy! Today we are showcasing the finest entertainment from Paramount Plus, and our contestants will be competing for break time!", {
-            rate: 0.8,
-            pitch: 0.9
-        }); 
-    
-        // Clear any existing timeouts
-        if (window._gameTimeouts) {
-            window._gameTimeouts.forEach(id => clearTimeout(id));
-        }
-        window._gameTimeouts = [];
-    
-        // Use tracked timeout
-        const timeoutId = setTimeout(() => {
-            try {
-                const categories = Object.keys(gameData.categories);
-                const categoryText = categories.join(', ');
-                
-                const currentPlayer = getCurrentPlayer();
-                if (!currentPlayer) {
-                    console.error('No current player in startGame timeout');
-                    return;
-                }
-                
-                speak(`Our categories today are: ${categoryText}....  Good luck, and remember to phrase your response in the form of a question!..  ..,. ${currentPlayer.name}, you're up first. Please select a category and break time value.`, {
-                    rate: 0.8
+
+        // Play WLTDO audio before introduction speech
+        const wltdoAudioElem = document.getElementById('wltdoAudio');
+        if (wltdoAudioElem) {
+            wltdoAudioElem.currentTime = 0;
+            wltdoAudioElem.volume = 0.3; // Reduce volume to 30%
+            wltdoAudioElem.play();
+            wltdoAudioElem.addEventListener('ended', () => {
+                // Introduction speech after WLTDO audio finishes
+                speakWithCallback("Welcome to Jeopardy! Today we are showcasing the finest entertainment from Paramount Plus, and our contestants will be competing for break time!", {
+                    rate: 0.8,
+                    pitch: 0.9
+                }, () => {
+                    // Wait a moment after intro speech, then announce categories
+                    const introTimeoutId = setTimeout(() => {
+                        try {
+                            const categories = Object.keys(gameData.categories);
+                            const categoryText = categories.join(', ');
+                            const currentPlayer = getCurrentPlayer();
+                            if (currentPlayer) {
+                                speak(`Our categories today are: ${categoryText}....  Good luck, and remember to phrase your response in the form of a question!..  ${currentPlayer.name}, you're up first. Please select a category and break time value.`, {
+                                    rate: 0.8
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Error in startGame intro timeout:', error);
+                        }
+                    }, 2000);
+
+                    if (!window._gameTimeouts) window._gameTimeouts = [];
+                    window._gameTimeouts.push(introTimeoutId);
                 });
-            } catch (error) {
-                console.error('Error in startGame timeout:', error);
-            }
-        }, 10000); 
-        
-        // Track timeout
-        if (!window._gameTimeouts) window._gameTimeouts = [];
-        window._gameTimeouts.push(timeoutId);
+            });
+        } else {
+            // Fallback if audio element missing
+            speakWithCallback("Welcome to Jeopardy! Today we are showcasing the finest entertainment from Paramount Plus, and our contestants will be competing for break time!", {
+                rate: 0.8,
+                pitch: 0.9
+            }, () => {
+                const fallbackTimeoutId = setTimeout(() => {
+                    try {
+                        const categories = Object.keys(gameData.categories);
+                        const categoryText = categories.join(', ');
+                        const currentPlayer = getCurrentPlayer();
+                        if (currentPlayer) {
+                            speak(`Our categories today are: ${categoryText}....  Good luck, and remember to phrase your response in the form of a question!..  ${currentPlayer.name}, you're up first. Please select a category and break time value.`, {
+                                rate: 0.8
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error in startGame fallback timeout:', error);
+                    }
+                }, 2000);
+                if (!window._gameTimeouts) window._gameTimeouts = [];
+                window._gameTimeouts.push(fallbackTimeoutId);
+            });
+        }
         
         console.log('Game started successfully');
     } catch (error) {
@@ -971,7 +1057,7 @@ function updateCurrentPlayerDisplay() {
         
         // Update display if elements exist
         if (elements.currentPlayerName) elements.currentPlayerName.textContent = player.name;
-        if (elements.currentScore) elements.currentScore.textContent = `${player.score} min`;
+        if (elements.currentScore) elements.currentScore.textContent = `${player.score}%`;
         if (elements.currentBreakTime) elements.currentBreakTime.textContent = `${player.breakTime} min`;
     } catch (error) {
         console.error('Error in updateCurrentPlayerDisplay:', error);
@@ -1041,7 +1127,7 @@ function showQuestionModal() {
         // Start the countdown timer after a short delay to ensure speech has started
         const timeoutId = setTimeout(() => {
             startCountdown();
-        }, 500);
+        }, 500); 
         
         // Track timeout for clean reset
         if (!window._gameTimeouts) window._gameTimeouts = [];
@@ -1090,14 +1176,12 @@ function startCountdown() {
             if (elements.countdownTimer) {
                 elements.countdownTimer.textContent = gameState.countdownTime;
                 
-                // Add warning class when time is running low
+                // Add warning class and play warning sound when time is running low
                 if (gameState.countdownTime <= 10 && gameState.countdownTime > 5) {
                     elements.countdownTimer.className = 'countdown-timer warning';
-                    // Play warning sound with increasing frequency
                     playTimerWarningSound(gameState.countdownTime);
-                } else if (gameState.countdownTime <= 5) {
+                } else if (gameState.countdownTime <= 5 && gameState.countdownTime >= 0) {
                     elements.countdownTimer.className = 'countdown-timer danger';
-                    // Play warning sound with increasing frequency
                     playTimerWarningSound(gameState.countdownTime);
                 }
             } else {
@@ -1201,15 +1285,17 @@ function handleAnswer(isCorrect) {
     player.questionsAnswered++;
 
     if (isCorrect) {
-        // Correct answer: add break time directly
-        player.score += value;
-        player.breakTime += value;
+        // Correct answer: track correct answers and calculate percentage
         player.correctAnswers++;
+        player.breakTime += value; // Keep break time for game mechanics
+        
+        // Calculate percentage score
+        player.score = player.questionsAnswered > 0 ? Math.round((player.correctAnswers / player.questionsAnswered) * 100) : 0;
 
         playSound('correctSound');
-        showBreakNotification(`${player.name} earned ${value} minutes of break time!`, 'correct');
+        showBreakNotification(`${player.name} got it right! Score: ${player.score}%`, 'correct');
 
-        speak(` ${player.name} got it right, and earns ${value} minutes of break time!`, {
+        speak(`${player.name} got it right, and earns ${value} minutes of break time! Your accuracy is ${player.score} percent!`, {
             rate: 0.8,
             pitch: 1.0
         });
@@ -1219,19 +1305,17 @@ function handleAnswer(isCorrect) {
         setTimeout(() => elements.questionModal.classList.remove('correct-animation'), 500);
 
     } else {
-        // Incorrect answer: lose break time
+        // Incorrect answer: track incorrect answers and recalculate percentage
         player.incorrectAnswers++;
-
-        // Lose break minute for being wrong
         const breakTimeLost = value;
-    
+        // Calculate percentage score
         player.breakTime = (player.breakTime - breakTimeLost);
-        player.score = ( player.score - breakTimeLost); 
+        player.score = player.questionsAnswered > 0 ? Math.round((player.correctAnswers / player.questionsAnswered) * 100) : 0;
 
         playSound('incorrectSound');
-        showBreakNotification(`${player.name} lost ${breakTimeLost} minute of break time.`, 'incorrect');
+        showBreakNotification(`${player.name} got it wrong. Score: ${player.score}%`, 'incorrect');
 
-        speak(`${player.name} got it wrong, and loses ${breakTimeLost} minute of break time.`, {
+        speak(`${player.name} got it wrong, and loses ${breakTimeLost} minute of break time. Your accuracy is ${player.score} percent.`, {
             rate: 0.8,
             pitch: 0.85
         });
@@ -1259,7 +1343,7 @@ function handleAnswer(isCorrect) {
                 pitch: 1.0
             });
         }
-    }, 5000);
+    }, 8000);
 }
 
 // Show break time notification
@@ -1267,10 +1351,10 @@ function showBreakNotification(message, type) {
     elements.breakMessage.textContent = message;
     elements.breakNotification.classList.remove('hidden');
 
-    // Auto-dismiss after 3 seconds
+    // Auto-dismiss after 7 seconds
     setTimeout(() => {
         dismissBreakNotification();
-    }, 7000);
+    }, 7000); 
 }
 
 // Dismiss break notification
@@ -1326,7 +1410,7 @@ function showLeaderboard() {
                 <tr>
                     <th>Rank</th>
                     <th>Player</th>
-                    <th>Score (min)</th>
+                    <th>Score (%)</th>
                     <th>Break Time (min)</th>
                     <th>Correct</th>
                     <th>Incorrect</th>
@@ -1344,7 +1428,7 @@ function showLeaderboard() {
             <tr class="player-row ${rankClass} ${highlightClass}">
                 <td class="player-rank">${index + 1}</td>
                 <td>${player.name}${isCurrentPlayer ? ' (Current)' : ''}</td>
-                <td>${player.score} min</td>
+                <td>${player.score}%</td>
                 <td>${player.breakTime} min</td>
                 <td>${player.correctAnswers}</td>
                 <td>${player.incorrectAnswers}</td>
@@ -1381,7 +1465,7 @@ function endGame() {
                 <tr>
                     <th>Final Rank</th>
                     <th>Player</th>
-                    <th>Final Score (min)</th>
+                    <th>Final Score (%)</th>
                     <th>Total Break Time (min)</th>
                     <th>Questions Answered</th>
                     <th>Accuracy</th>
@@ -1398,7 +1482,7 @@ function endGame() {
             <tr class="player-row ${rankClass}">
                 <td class="player-rank">${index + 1}</td>
                 <td>${player.name}</td>
-                <td>${player.score} min</td>
+                <td>${player.score}%</td>
                 <td>${player.breakTime} min</td>
                 <td>${player.questionsAnswered}</td>
                 <td>${accuracy}%</td>
@@ -1418,7 +1502,7 @@ function endGame() {
 
     // Announce final results
     const winner = sortedPlayers[0];
-    speak(`Congratulations to our champion, ${winner.name}, with a final score of ${winner.score} minutes and ${winner.breakTime} minutes of break time! Thank you all for playing Paramount Plus Jeopardy!`, {
+    speak(`Congratulations to our champion, ${winner.name}, with a final score of ${winner.score} percent and ${winner.breakTime} minutes of break time! Thank you all for playing Paramount Plus Jeopardy!`, {
         rate: 0.8,
         pitch: 1.0
     });
@@ -1432,11 +1516,11 @@ function exportResults() {
     });
 
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Rank,Player,Score (min),Break Time (min),Questions Answered,Correct Answers,Incorrect Answers,Accuracy\n";
+    csvContent += "Rank,Player,Score (%),Break Time (min),Questions Answered,Correct Answers,Incorrect Answers,Accuracy\n";
 
     sortedPlayers.forEach((player, index) => {
         const accuracy = player.questionsAnswered > 0 ? Math.round((player.correctAnswers / player.questionsAnswered) * 100) : 0;
-        csvContent += `${index + 1},${player.name},${player.score},${player.breakTime},${player.questionsAnswered},${player.correctAnswers},${player.incorrectAnswers},${accuracy}%\n`;
+        csvContent += `${index + 1},${player.name},${player.score}%,${player.breakTime},${player.questionsAnswered},${player.correctAnswers},${player.incorrectAnswers},${accuracy}%\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -1453,84 +1537,22 @@ function exportResults() {
 // Reset game
 function resetGame() {
     try {
-        // Stop any running countdown and speech
-        stopCountdown();
-        if (window.speechSynthesis) {
-            speechSynthesis.cancel();
+        console.log('Refreshing the game...');
+        
+        // Play click sound before refresh
+        if (gameState.audioEnabled) {
+            playSound('clickSound');
         }
         
-        // Clear any pending timeouts
-        if (window._gameTimeouts) {
-            window._gameTimeouts.forEach(id => clearTimeout(id));
-        }
-        window._gameTimeouts = [];
+        // Refresh the browser after a short delay to allow sound to play
+        setTimeout(() => {
+            window.location.reload();
+        }, 200);
         
-        // Generate new random game data
-        gameData = generateRandomGame();
-        console.log('Generated new random questions and categories for reset');
-        
-        // Refresh DOM elements
-        refreshDOMElements();
-        
-        // Make sure critical elements are available after refresh
-        const criticalElements = ['startScreen', 'gameScreen', 'playersList'];
-        const missingElements = criticalElements.filter(el => !elements[el]);
-        
-        if (missingElements.length > 0) {
-            console.error('Missing critical elements during reset:', missingElements);
-            alert('There was a problem resetting the game. Please refresh the page.');
-            return;
-        }
-        
-        // Save audio settings
-        const audioEnabled = gameState ? gameState.audioEnabled : true;
-        const bestVoice = gameState ? gameState.bestVoice : null;
-        
-        // Update total questions based on new categories
-        const categoryCount = Object.keys(gameData.categories).length;
-        const totalQuestions = categoryCount * 5; // 5 questions per category
-        
-        // Reset game state
-        gameState = {
-            players: [],
-            currentPlayerIndex: 0,
-            usedQuestions: new Set(),
-            questionsAnswered: 0,
-            totalQuestions: totalQuestions,
-            currentQuestion: null,
-            gameStarted: false,
-            audioEnabled: audioEnabled,
-            bestVoice: bestVoice,
-            countdownInterval: null,
-            countdownTime: 30,
-            countdownRunning: false
-        };
-    
-        // Re-initialize components
-        setupPlayers();
-        setupEventListeners(); // Re-bind events to be safe
-        createGameBoard();
-    
-        // Hide all modals if the elements exist
-        if (elements.questionModal) elements.questionModal.style.display = 'none';
-        if (elements.leaderboardModal) elements.leaderboardModal.style.display = 'none';
-        if (elements.finalResultsModal) elements.finalResultsModal.style.display = 'none';
-        if (elements.breakNotification) elements.breakNotification.classList.add('hidden');
-        
-        // Reset any countdown UI
-        if (elements.countdownTimer) {
-            elements.countdownTimer.textContent = '30';
-            elements.countdownTimer.className = 'countdown-timer';
-        }
-    
-        // Go back to start screen
-        showStartScreen();
-        playSound('clickSound');
-        
-        console.log('Game reset successfully');
     } catch (error) {
-        console.error('Error resetting game:', error);
-        alert('There was a problem resetting the game. Please refresh the page.');
+        console.error('Error refreshing game:', error);
+        // Fallback: force refresh even if there's an error
+        window.location.reload();
     }
 }
 
@@ -1564,29 +1586,28 @@ function stopWarningSound() {
 
 // Play warning sound with increasing frequency as timer gets lower
 function playTimerWarningSound(secondsRemaining) {
-    // Play warning sound at exactly 10 seconds
+    // Start playing warning sound continuously when timer hits 10 seconds
     if (secondsRemaining === 10) {
         const sound = document.getElementById('warningSound');
-        if (sound) {
-            sound.volume = 0.8; // Set to 80% volume
-            playSound('warningSound');
-        }
-        console.log('Playing 10-second warning sound');
-    } 
-    // Play warning at 7 seconds
-    else if (secondsRemaining === 7) {
-        const sound = document.getElementById('warningSound');
-        if (sound) {
-            sound.volume = 0.9; // Set to 90% volume
-            playSound('warningSound');
+        if (sound && gameState.audioEnabled) {
+            // Set volume at 80% for audibility (reduced by 20%)
+            sound.volume = 0.8;
+            sound.loop = true; // Enable looping for continuous play
+            
+            // Start playing the sound continuously
+            sound.currentTime = 0;
+            sound.play().catch(e => console.warn('Warning sound play failed:', e));
+            console.log(`Starting continuous warning sound at ${secondsRemaining} seconds, volume: ${sound.volume}`);
         }
     }
-    // Play every second when 5 seconds or less remain
-    else if (secondsRemaining <= 5) {
+    
+    // Increase intensity (volume) for the last 5 seconds
+    if (secondsRemaining <= 5 && secondsRemaining >= 0) {
         const sound = document.getElementById('warningSound');
-        if (sound) {
-            sound.volume = 1.0; // Set to 100% volume (maximum)
-            playSound('warningSound');
+        if (sound && gameState.audioEnabled && !sound.paused) {
+            // Increase volume to 80% for final 5 seconds (reduced by 20%)
+            sound.volume = 0.8;
+            console.log(`Intensifying warning sound at ${secondsRemaining} seconds, volume: ${sound.volume}`);
         }
     }
 }
