@@ -1529,7 +1529,7 @@ function playSound(soundId) {
 }
 
 // Play warning sound with increasing frequency as timer gets lower
-function playTimerWarningSound(secondsRemaining) {
+function playTimerWarningSound(!secondsRemaining < 0) {
     // Play warning sound at exactly 10 seconds
     if (secondsRemaining === 10) {
         const sound = document.getElementById('warningSound');
